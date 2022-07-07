@@ -38,7 +38,7 @@ public sealed class TokenService : ITokenService
     {
         ClaimsPrincipal principal = _jwtBearerManager.GetPrincipalFromToken(refreshToken);
         IdentityUser user = await _authManager.AuthenticateAsync(principal) ??
-                            throw new SecurityTokenException("Could find user for the given token.");
+                            throw new SecurityTokenException("Could not find the user for the given token.");
 
         BearerToken? storedRefreshToken = await _authManager.GetRefreshTokenAsync(user);
         if (storedRefreshToken is null || !storedRefreshToken.Equals(refreshToken))
@@ -61,7 +61,7 @@ public sealed class TokenService : ITokenService
         ClaimsPrincipal principal = _jwtBearerManager.GetPrincipalFromToken(refreshToken);
 
         IdentityUser? user = await _authManager.AuthenticateAsync(principal) ??
-                             throw new SecurityTokenException("Could find user for the given token.");
+                             throw new SecurityTokenException("Could not find the user for the given token.");
 
         await _authManager.DeleteRefreshTokenAsync(user);
     }

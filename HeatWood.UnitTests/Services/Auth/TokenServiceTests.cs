@@ -138,7 +138,7 @@ public sealed class TokenServiceTests
 
         await act.Should()
             .ThrowAsync<SecurityTokenException>()
-            .WithMessage("Could find user for the given token.");
+            .WithMessage("Could not find the user for the given token.");
     }
 
     [Fact]
@@ -212,6 +212,6 @@ public sealed class TokenServiceTests
 
         await act.Should()
             .ThrowAsync<SecurityTokenException>()
-            .WithMessage("Could find user for the given token.");
+            .WithMessage("Could not find the user for the given token.");
     }
 }
