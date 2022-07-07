@@ -2,14 +2,14 @@ namespace HeatWood.Models;
 
 public record JwtBearerSettings
 {
-    public string Secret { get; init; } = string.Empty;
+    public string Secret { get; set; } = string.Empty;
 
-    public TokenSettings AccessToken { get; init; } = new();
+    public TokenSettings AccessToken { get; set; } = new();
 
-    public TokenSettings RefreshToken { get; init; } = new();
+    public TokenSettings RefreshToken { get; set; } = new();
 
     public record TokenSettings
     {
-        public TimeSpan LifeSpan { get; init; } = default;
+        public TimeSpan LifeSpan { get; set; }
     }
 }

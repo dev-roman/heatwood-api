@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Security.Claims;
 using System.Text;
 using HeatWood.Database;
@@ -6,6 +7,7 @@ using HeatWood.Services.Auth;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 
@@ -37,7 +39,7 @@ builder.Services.AddAuthentication()
             ValidateIssuerSigningKey = true,
             IssuerSigningKey =
                 new SymmetricSecurityKey(Encoding.ASCII.GetBytes(
-                    builder.Configuration["JwtBearer:AccessToken:Secret"]
+                    builder.Configuration["JwtBearer:Secret"]
                 )),
             ValidateAudience = false,
             ValidateIssuer = false
@@ -70,10 +72,7 @@ builder.Services.Configure<JwtBearerSettings>(
 builder.Services.AddScoped<IAuthManager<IdentityUser>, AuthManager<IdentityUser>>();
 builder.Services.AddScoped<IJwtBearerManager>(_ => new JwtBearerManager(builder.Configuration["JwtBearer:Secret"]));
 builder.Services.AddScoped<ITokenService, TokenService>();
-builder.Services.Configure<RouteOptions>(opts =>
-{
-    opts.LowercaseUrls = true;
-});
+builder.Services.Configure<RouteOptions>(opts => { opts.LowercaseUrls = true; });
 
 var app = builder.Build();
 
@@ -91,6 +90,15 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.UseRequestLocalization(opts =>
+{
+    var cultures = builder.Configuration.GetSection("Cultures").Get<string[]>()
+        .Select(CultureInfo.GetCultureInfo).ToList();
+    
+    opts.SupportedCultures = cultures;
+    opts.DefaultRequestCulture = new RequestCulture(cultures[0]);
+});
 
 app.Run();
 

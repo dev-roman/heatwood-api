@@ -1,38 +1,27 @@
 using System.Net;
-using System.Net.Http.Headers;
 using FluentAssertions;
 using HeatWood.Models;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Options;
 
 namespace HeatWood.IntegrationTests.Areas.Admin.Controllers;
 
 public sealed class TokenControllerTests : IntegrationTests
 {
-    private readonly Credentials _loginCredentials = new()
-    {
-        UserName = "admin",
-        Password = "valid_password"
-    };
-
     [Fact]
-    public async Task Generate_Success()
+    public async Task Generate_ReturnsTokens()
     {
-        HttpResponseMessage response =
-            await HttpClient.PostAsync("api/token/generate", SerializeRequest(_loginCredentials));
-        var bearerTokens = await DeserializeResponseAsync<JwtBearerTokens>(response);
+        JwtBearerTokens tokens = await GenerateTokensAsync();
 
-        bearerTokens.AccessToken.Should().NotBeEmpty();
-        bearerTokens.RefreshToken.Should().NotBeEmpty();
+        tokens.AccessToken.Should().NotBeEmpty();
+        tokens.RefreshToken.Should().NotBeEmpty();
     }
 
     [Theory]
     [InlineData("admin", "invalid_pass")]
     [InlineData("invalid_username", "invalid_pass")]
     [InlineData("invalid_username", "valid_password")]
-    public async Task Generate_Failure_Unauthorized(string userName, string password)
+    public async Task Generate_WithNotExistingUserCredentials_Returns401StatusCode(string userName, string password)
     {
         HttpResponseMessage response = await HttpClient.PostAsync("api/token/generate", SerializeRequest(
             new Credentials
@@ -43,12 +32,12 @@ public sealed class TokenControllerTests : IntegrationTests
 
         response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
-    
+
     [Theory]
     [InlineData("admin", "")]
     [InlineData("", "")]
     [InlineData("", "valid_password")]
-    public async Task Generate_Failure_BadRequest(string userName, string password)
+    public async Task Generate_WithInvalidCredentials_Returns400StatusCode(string userName, string password)
     {
         HttpResponseMessage response = await HttpClient.PostAsync("api/token/generate", SerializeRequest(
             new Credentials
@@ -61,124 +50,79 @@ public sealed class TokenControllerTests : IntegrationTests
     }
 
     [Fact]
-    public async Task Refresh_Success()
+    public async Task Refresh_ReturnsRefreshedTokens()
     {
-        HttpResponseMessage generateResponse =
-            await HttpClient.PostAsync("api/token/generate", SerializeRequest(_loginCredentials));
-        var generatedTokens = await DeserializeResponseAsync<JwtBearerTokens>(generateResponse);
+        JwtBearerTokens tokens = await GenerateTokensAsync();
 
-        var requestMessage = new HttpRequestMessage(HttpMethod.Post, "api/token/refresh");
-        requestMessage.Headers.Authorization =
-            new AuthenticationHeaderValue(JwtBearerDefaults.AuthenticationScheme, generatedTokens.RefreshToken);
+        HttpResponseMessage response = await RefreshTokensAsync(tokens.RefreshToken);
+        var refreshedTokens = await DeserializeResponseAsync<JwtBearerTokens>(response);
 
-        // Act
-        HttpResponseMessage refreshResponse = await HttpClient.SendAsync(requestMessage);
-        var refreshedTokens = await DeserializeResponseAsync<JwtBearerTokens>(refreshResponse);
-
-        // Assert
-        refreshResponse.StatusCode.Should().Be(HttpStatusCode.OK);
+        response.StatusCode.Should().Be(HttpStatusCode.OK);
         refreshedTokens.AccessToken.Should().NotBeEmpty();
         refreshedTokens.RefreshToken.Should().NotBeEmpty();
     }
 
     [Fact]
-    public async Task Refresh_Failure_BadRequest()
+    public async Task Refresh_WithInvalidRefreshToken_Returns400StatusCode()
     {
-        HttpResponseMessage refreshResponse = await HttpClient.PostAsync("api/token/refresh", null);
+        HttpResponseMessage refreshResponse = await RefreshTokensAsync(null);
 
         refreshResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 
     [Fact]
-    public async Task Refresh_Failure_Unauthorized()
+    public async Task Refresh_WithExpiredRefreshToken_Returns401StatusCode()
     {
         // Arrange
-        // TODO: extract to separate class/method
-        HttpClient expiredTokensClient = new WebApplicationFactory<Program>()
+        HttpClient client = new WebApplicationFactory<Program>()
             .WithWebHostBuilder(builder =>
             {
                 builder.ConfigureServices(services =>
                 {
-                    services.AddSingleton<IOptions<JwtBearerSettings>>(_ => new OptionsWrapper<JwtBearerSettings>(
-                        new JwtBearerSettings
-                        {
-                            Secret = "some_secret_secret",
-                            AccessToken = new() {LifeSpan = TimeSpan.FromMinutes(-1)},
-                            RefreshToken = new() {LifeSpan = TimeSpan.FromMinutes(-1)}
-                        }));
+                    services.Configure<JwtBearerSettings>(opts =>
+                    {
+                        opts.AccessToken.LifeSpan = TimeSpan.FromHours(-1);
+                        opts.RefreshToken.LifeSpan = TimeSpan.FromHours(-1);
+                    });
                 });
             }).CreateClient();
 
-        HttpResponseMessage response =
-            await expiredTokensClient.PostAsync("api/token/generate", SerializeRequest(_loginCredentials));
-        var expiredBearerTokens = await DeserializeResponseAsync<JwtBearerTokens>(response);
-        
-        var requestMessage = new HttpRequestMessage(HttpMethod.Post, "api/token/refresh");
-        requestMessage.Headers.Authorization =
-            new AuthenticationHeaderValue(JwtBearerDefaults.AuthenticationScheme, expiredBearerTokens.RefreshToken);
+        HttpResponseMessage response = await client.PostAsync("api/token/generate", SerializeRequest(LoginCredentials));
+        var expiredTokens = await DeserializeResponseAsync<JwtBearerTokens>(response);
 
         // Act
-        HttpResponseMessage refreshResponse = await HttpClient.SendAsync(requestMessage);
-        
+        HttpResponseMessage refreshResponse = await RefreshTokensAsync(expiredTokens.RefreshToken);
+
         // Assert
         refreshResponse.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
-    
+
     [Fact]
-    public async Task Revoke_Success()
+    public async Task Revoke_Returns204StatusCode()
     {
-        // Arrange
-        HttpResponseMessage response =
-            await HttpClient.PostAsync("api/token/generate", SerializeRequest(_loginCredentials));
-        var bearerTokens = await DeserializeResponseAsync<JwtBearerTokens>(response);
-        
-        // Act
-        var requestMessage = new HttpRequestMessage(HttpMethod.Post, "api/token/revoke");
-        requestMessage.Headers.Authorization =
-            new AuthenticationHeaderValue(JwtBearerDefaults.AuthenticationScheme, bearerTokens.RefreshToken);
-        HttpResponseMessage revokeResponse = await HttpClient.SendAsync(requestMessage);
+        JwtBearerTokens tokens = await GenerateTokensAsync();
 
-        // Assert
-        revokeResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
-        
-        var refreshRequestMessage = new HttpRequestMessage(HttpMethod.Post, "api/token/refresh");
-        refreshRequestMessage.Headers.Authorization =
-            new AuthenticationHeaderValue(JwtBearerDefaults.AuthenticationScheme, bearerTokens.RefreshToken);
-        HttpResponseMessage refreshResponse = await HttpClient.SendAsync(refreshRequestMessage);
+        HttpResponseMessage response = await RevokeTokensAsync(tokens.RefreshToken);
 
-        refreshResponse.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        response.StatusCode.Should().Be(HttpStatusCode.NoContent);
     }
-    
+
     [Fact]
-    public async Task Revoke_Failure_Unauthorized()
+    public async Task Refresh_WithRevokedRefreshToken_Returns401StatusCode()
     {
-        // Arrange
-        HttpResponseMessage response =
-            await HttpClient.PostAsync("api/token/generate", SerializeRequest(_loginCredentials));
-        var bearerTokens = await DeserializeResponseAsync<JwtBearerTokens>(response);
-        
-        // Act
-        var requestMessage = new HttpRequestMessage(HttpMethod.Post, "api/token/revoke");
-        requestMessage.Headers.Authorization =
-            new AuthenticationHeaderValue(JwtBearerDefaults.AuthenticationScheme, bearerTokens.RefreshToken);
-        HttpResponseMessage revokeResponse = await HttpClient.SendAsync(requestMessage);
+        JwtBearerTokens tokens = await GenerateTokensAsync();
+        await RevokeTokensAsync(tokens.RefreshToken);
 
-        // Assert
-        revokeResponse.StatusCode.Should().Be(HttpStatusCode.NoContent);
-        
-        var refreshRequestMessage = new HttpRequestMessage(HttpMethod.Post, "api/token/refresh");
-        refreshRequestMessage.Headers.Authorization =
-            new AuthenticationHeaderValue(JwtBearerDefaults.AuthenticationScheme, bearerTokens.RefreshToken);
-        HttpResponseMessage refreshResponse = await HttpClient.SendAsync(refreshRequestMessage);
+        HttpResponseMessage response = await RefreshTokensAsync(tokens.RefreshToken);
 
-        refreshResponse.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
+        response.StatusCode.Should().Be(HttpStatusCode.Unauthorized);
     }
-    
+
     [Fact]
     public async Task Revoke_Failure_BadRequest()
     {
-        HttpResponseMessage revokeResponse = await HttpClient.PostAsync("api/token/revoke", null);
+        HttpResponseMessage response = await RevokeTokensAsync(null);
 
-        revokeResponse.StatusCode.Should().Be(HttpStatusCode.BadRequest);
+        response.StatusCode.Should().Be(HttpStatusCode.BadRequest);
     }
 }
