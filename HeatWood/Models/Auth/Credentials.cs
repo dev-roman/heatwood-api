@@ -1,6 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 
-namespace HeatWood.Models;
+namespace HeatWood.Models.Auth;
 
 public sealed class Credentials
 {

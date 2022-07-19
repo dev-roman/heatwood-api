@@ -1,5 +1,7 @@
+using System.Net.Mime;
 using System.Security.Authentication;
 using HeatWood.Models;
+using HeatWood.Models.Auth;
 using HeatWood.Services.Auth;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
@@ -7,8 +9,9 @@ using Microsoft.IdentityModel.Tokens;
 namespace HeatWood.Areas.Admin.Controllers;
 
 [ApiController]
-[Route("api/[controller]")]
-[Produces("application/json")]
+[Route("api/admin/[controller]")]
+[Consumes(MediaTypeNames.Application.Json)]
+[Produces(MediaTypeNames.Application.Json)]
 public sealed class TokenController : ControllerBase
 {
     private readonly ITokenService _tokenService;

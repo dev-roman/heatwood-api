@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using HeatWood.Models;
+using HeatWood.Models.Auth;
 using Microsoft.AspNetCore.Identity;
 
 namespace HeatWood.Services.Auth;

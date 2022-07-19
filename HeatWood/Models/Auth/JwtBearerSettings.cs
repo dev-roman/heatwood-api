@@ -1,4 +1,4 @@
-namespace HeatWood.Models;
+namespace HeatWood.Models.Auth;
 
 public record JwtBearerSettings
 {

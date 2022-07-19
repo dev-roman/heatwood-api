@@ -1,7 +1,7 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Mvc;
 
-namespace HeatWood.Models;
+namespace HeatWood.Models.Auth;
 
 public record BearerToken
 {

@@ -2,6 +2,7 @@ using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
 using System.Text;
 using HeatWood.Models;
+using HeatWood.Models.Auth;
 using Microsoft.IdentityModel.Tokens;
 
 namespace HeatWood.Services.Auth;

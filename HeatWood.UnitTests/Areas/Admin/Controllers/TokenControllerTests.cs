@@ -2,6 +2,7 @@ using System.Security.Authentication;
 using FluentAssertions;
 using HeatWood.Areas.Admin.Controllers;
 using HeatWood.Models;
+using HeatWood.Models.Auth;
 using HeatWood.Services.Auth;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.IdentityModel.Tokens;
@@ -30,11 +31,10 @@ public sealed class TokenControllerTests
             .Setup(x => x.IssueBearerTokensAsync(It.IsAny<Credentials>()))
             .ReturnsAsync(bearerTokens);
 
-        var result = await _sut.Generate(It.IsAny<Credentials>()) as ObjectResult;
-        result!.StatusCode.Should().Be(200);
-
-        var tokens = result.Value as JwtBearerTokens;
-        tokens!.AccessToken.Should().Be("a");
+        var result = (OkObjectResult) await _sut.Generate(It.IsAny<Credentials>());
+        var tokens = (JwtBearerTokens) result.Value!;
+        
+        tokens.AccessToken.Should().Be("a");
         tokens.RefreshToken.Should().Be("b");
     }
     

@@ -1,4 +1,5 @@
 ﻿using HeatWood.Models;
+using HeatWood.Models.Auth;
 
 namespace HeatWood.Services.Auth;
 

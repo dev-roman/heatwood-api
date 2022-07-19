@@ -7,6 +7,8 @@
     </PropertyGroup>
 
     <ItemGroup>
+        <PackageReference Include="FluentValidation" Version="11.1.0" />
+        <PackageReference Include="FluentValidation.AspNetCore" Version="11.1.2" />
         <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="6.0.6" />
         <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="6.0.6" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="6.0.6">
@@ -15,11 +17,7 @@
         </PackageReference>
         <PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="6.0.6" />
         <PackageReference Include="Swashbuckle.AspNetCore" Version="6.3.1" />
-    </ItemGroup>
-
-    <ItemGroup>
-      <Folder Include="Areas\Admin\Requests" />
-      <Folder Include="Areas\Client" />
+        <PackageReference Include="Swashbuckle.AspNetCore.Annotations" Version="6.3.1" />
     </ItemGroup>
 
     <ItemGroup>

@@ -1,6 +1,7 @@
 ﻿using System.Security.Authentication;
 using System.Security.Claims;
 using HeatWood.Models;
+using HeatWood.Models.Auth;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;

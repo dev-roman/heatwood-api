@@ -2,6 +2,7 @@ using System.Security.Authentication;
 using System.Security.Claims;
 using FluentAssertions;
 using HeatWood.Models;
+using HeatWood.Models.Auth;
 using HeatWood.Services.Auth;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.Options;
@@ -76,6 +77,7 @@ public sealed class TokenServiceTests
     [Fact]
     public async Task RefreshBearerTokenAsync_ReturnsRefreshedTokens()
     {
+        // Arrange
         var refreshToken = new BearerToken {Value = "t"};
         var newAccessToken = new BearerToken {Value = "a"};
         var newRefreshToken = new BearerToken {Value = "b"};
@@ -103,6 +105,7 @@ public sealed class TokenServiceTests
         // Act
         JwtBearerTokens result = await _sut.RefreshBearerTokensAsync(refreshToken);
 
+        // Assert
         result.AccessToken.Should().BeEquivalentTo("a");
         result.RefreshToken.Should().BeEquivalentTo("b");
         _mockAuthManager.Verify(x => x.StoreRefreshTokenAsync(_user, newRefreshToken));
@@ -111,6 +114,7 @@ public sealed class TokenServiceTests
     [Fact]
     public async Task RefreshBearerTokenAsync_PrincipalCouldNotBeExtracted_ThrowsSecurityTokenException()
     {
+        // Arrange
         _mockJwtBearerManager
             .Setup(x => x.GetPrincipalFromToken(It.IsAny<BearerToken>()))
             .Throws<SecurityTokenInvalidLifetimeException>();
@@ -118,6 +122,7 @@ public sealed class TokenServiceTests
         // Act
         var act = async () => { await _sut.RefreshBearerTokensAsync(It.IsAny<BearerToken>()); };
 
+        // Assert
         await act.Should()
             .ThrowAsync<SecurityTokenInvalidLifetimeException>();
     }
@@ -125,6 +130,7 @@ public sealed class TokenServiceTests
     [Fact]
     public async Task RefreshBearerTokenAsync_UserNotFound_ThrowsSecurityTokenException()
     {
+        // Arrange
         _mockJwtBearerManager
             .Setup(x => x.GetPrincipalFromToken(It.IsAny<BearerToken>()))
             .Returns(new ClaimsPrincipal());
@@ -136,6 +142,7 @@ public sealed class TokenServiceTests
         // Act
         var act = async () => { await _sut.RefreshBearerTokensAsync(It.IsAny<BearerToken>()); };
 
+        // Assert
         await act.Should()
             .ThrowAsync<SecurityTokenException>()
             .WithMessage("Could not find the user for the given token.");
@@ -144,6 +151,7 @@ public sealed class TokenServiceTests
     [Fact]
     public async Task RefreshBearerTokenAsync_RefreshTokenNotFound_ThrowsSecurityTokenException()
     {
+        // Arrange
         _mockJwtBearerManager
             .Setup(x => x.GetPrincipalFromToken(It.IsAny<BearerToken>()))
             .Returns(new ClaimsPrincipal());
@@ -159,6 +167,7 @@ public sealed class TokenServiceTests
         // Act
         var act = async () => { await _sut.RefreshBearerTokensAsync(It.IsAny<BearerToken>()); };
 
+        // Assert
         await act.Should()
             .ThrowAsync<SecurityTokenException>()
             .WithMessage("Invalid refresh token.");
@@ -167,6 +176,7 @@ public sealed class TokenServiceTests
     [Fact]
     public async Task RevokeRefreshTokenAsync_ValidRefreshToken()
     {
+        // Arrange
         _mockJwtBearerManager
             .Setup(x => x.GetPrincipalFromToken(It.IsAny<BearerToken>()))
             .Returns(new ClaimsPrincipal());
@@ -178,13 +188,14 @@ public sealed class TokenServiceTests
         // Act
         await _sut.RevokeRefreshTokenAsync(It.IsAny<BearerToken>());
 
+        // Assert
         _mockAuthManager.Verify(x => x.DeleteRefreshTokenAsync(_user));
     }
 
     [Fact]
-    public async Task
-        RevokeRefreshTokenAsync_PrincipalCouldNotBeExtracted_ThrowsSecurityTokenException()
+    public async Task RevokeRefreshTokenAsync_PrincipalCouldNotBeExtracted_ThrowsSecurityTokenException()
     {
+        // Arrange
         _mockJwtBearerManager
             .Setup(x => x.GetPrincipalFromToken(It.IsAny<BearerToken>()))
             .Throws<SecurityTokenInvalidSignatureException>();
@@ -192,6 +203,7 @@ public sealed class TokenServiceTests
         // Act
         var act = async () => { await _sut.RevokeRefreshTokenAsync(It.IsAny<BearerToken>()); };
 
+        // Assert
         await act.Should()
             .ThrowAsync<SecurityTokenInvalidSignatureException>();
     }
@@ -199,6 +211,7 @@ public sealed class TokenServiceTests
     [Fact]
     public async Task RevokeRefreshTokenAsync_UserNotFound_ThrowsSecurityTokenException()
     {
+        // Arrange
         _mockJwtBearerManager
             .Setup(x => x.GetPrincipalFromToken(It.IsAny<BearerToken>()))
             .Returns(new ClaimsPrincipal());
@@ -210,6 +223,7 @@ public sealed class TokenServiceTests
         // Act
         var act = async () => { await _sut.RevokeRefreshTokenAsync(It.IsAny<BearerToken>()); };
 
+        // Assert
         await act.Should()
             .ThrowAsync<SecurityTokenException>()
             .WithMessage("Could not find the user for the given token.");

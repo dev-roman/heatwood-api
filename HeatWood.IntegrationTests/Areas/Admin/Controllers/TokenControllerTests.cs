@@ -1,6 +1,7 @@
 using System.Net;
 using FluentAssertions;
 using HeatWood.Models;
+using HeatWood.Models.Auth;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -23,7 +24,7 @@ public sealed class TokenControllerTests : IntegrationTests
     [InlineData("invalid_username", "valid_password")]
     public async Task Generate_WithNotExistingUserCredentials_Returns401StatusCode(string userName, string password)
     {
-        HttpResponseMessage response = await HttpClient.PostAsync("api/token/generate", SerializeRequest(
+        HttpResponseMessage response = await HttpClient.PostAsync("api/admin/token/generate", SerializeRequest(
             new Credentials
             {
                 UserName = userName,
@@ -39,7 +40,7 @@ public sealed class TokenControllerTests : IntegrationTests
     [InlineData("", "valid_password")]
     public async Task Generate_WithInvalidCredentials_Returns400StatusCode(string userName, string password)
     {
-        HttpResponseMessage response = await HttpClient.PostAsync("api/token/generate", SerializeRequest(
+        HttpResponseMessage response = await HttpClient.PostAsync("api/admin/token/generate", SerializeRequest(
             new Credentials
             {
                 UserName = userName,
@@ -87,7 +88,7 @@ public sealed class TokenControllerTests : IntegrationTests
                 });
             }).CreateClient();
 
-        HttpResponseMessage response = await client.PostAsync("api/token/generate", SerializeRequest(LoginCredentials));
+        HttpResponseMessage response = await client.PostAsync("api/admin/token/generate", SerializeRequest(LoginCredentials));
         var expiredTokens = await DeserializeResponseAsync<JwtBearerTokens>(response);
 
         // Act
